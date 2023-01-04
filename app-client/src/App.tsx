@@ -23,7 +23,7 @@ const manifest = {
 
 function App() {
   const [loaded, setLoaded] = useState(false);
-  const [started, setStarted] = useState(false); // dev: true
+  const [started, setStarted] = useState(true); // dev: true
 
   const fetchData = async () => {
     const res = await fetch("/api");

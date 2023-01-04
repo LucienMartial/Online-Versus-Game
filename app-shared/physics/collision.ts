@@ -94,4 +94,20 @@ class BoxShape extends CollisionShape {
   }
 }
 
-export { CollisionShape, BoxShape };
+/**
+ * Line collision, to have thickness, use Polygon with 4 points
+ */
+class LineShape extends CollisionShape {
+  p1: Vector;
+  p2: Vector;
+
+  constructor(x1: number, y1: number, x2: number, y2: number) {
+    super(ShapeType.Polygon);
+    this.p1 = new Vector(x1, y1);
+    this.p2 = new Vector(x2, y2);
+    const points = [this.p1, this.p2];
+    this.shape = new Polygon(new Vector(), points);
+  }
+}
+
+export { CollisionShape, BoxShape, LineShape };

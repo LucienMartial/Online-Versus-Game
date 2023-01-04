@@ -33,7 +33,7 @@ function Game() {
     // init scene
     const scene = new Scene(width, height);
     scene.load().then(() => {
-      viewport.addChild(scene.stage);
+      viewport.addChild(scene.ctx.stage);
       // launch game
       window.requestAnimationFrame(schedule);
     });

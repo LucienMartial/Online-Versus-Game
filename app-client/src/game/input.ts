@@ -1,8 +1,9 @@
 const InputsKeys: { [key: string]: string[] } = {
-  left: ["a", "ArrowLeft"],
+  left: ["q","a", "ArrowLeft"],
   right: ["d", "ArrowRight"],
-  up: ["w", "ArrowUp"],
+  up: ["z","w", "ArrowUp"],
   down: ["s", "ArrowDown"],
+  space: [" "],
 };
 
 class InputManager {
@@ -14,6 +15,7 @@ class InputManager {
       right: false,
       up: false,
       down: false,
+      space: false,
     };
 
     document.body.onkeydown = this.handleKey.bind(this);
