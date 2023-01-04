@@ -1,9 +1,9 @@
-import React, { useDeferredValue, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
 import { hello } from "../../app-shared/hello";
 import { Message } from "../../app-shared/api-types";
 import { io } from "socket.io-client";
-import Game from "./game/Game";
+import Game from "./components/Game";
 import { Assets } from "@pixi/assets";
 
 // assets information
@@ -23,7 +23,7 @@ const manifest = {
 
 function App() {
   const [loaded, setLoaded] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(false); // dev: true
 
   const fetchData = async () => {
     const res = await fetch("/api");

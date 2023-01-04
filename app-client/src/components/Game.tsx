@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import React from "react";
-import { Application, Graphics } from "pixi.js";
+import { Application } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import "./Game.css";
-import { Scene } from "./scene";
+import { Scene } from "../game/scene";
 
 function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,13 +34,19 @@ function Game() {
     const scene = new Scene(width, height);
     scene.load().then(() => {
       viewport.addChild(scene.stage);
-      // update
-      let elapsed = 0.0;
-      app.ticker.add((delta) => {
-        elapsed += delta;
-        scene.update(delta);
-      });
+      // launch game
+      window.requestAnimationFrame(schedule);
     });
+
+    // scheduler
+    let last = Date.now();
+    function schedule() {
+      const now = Date.now();
+      const dt = (now - last) * 0.001;
+      last = now;
+      scene.update(now, dt);
+      window.requestAnimationFrame(schedule);
+    }
 
     // resize
     const resize = () => {
@@ -54,6 +60,7 @@ function Game() {
 
     // on unmount
     return () => {
+      viewport.destroy();
       app.destroy();
       window.removeEventListener("resize", resize);
     };
