@@ -1,13 +1,15 @@
-const InputsKeys: { [key: string]: string[] } = {
-  left: ["q","a", "ArrowLeft"],
+import type { Inputs } from "../../../../app-shared/utils";
+
+const InputsKeys: Record<Inputs, string[]> = {
+  left: ["q", "a", "ArrowLeft"],
   right: ["d", "ArrowRight"],
-  up: ["z","w", "ArrowUp"],
+  up: ["z", "w", "ArrowUp"],
   down: ["s", "ArrowDown"],
-  space: [" "],
+  dash: [" "],
 };
 
 class InputManager {
-  inputs: { [key: string]: boolean };
+  inputs: Record<Inputs, boolean>;
 
   constructor() {
     this.inputs = {
@@ -15,7 +17,7 @@ class InputManager {
       right: false,
       up: false,
       down: false,
-      space: false,
+      dash: false,
     };
 
     document.body.onkeydown = this.handleKey.bind(this);
@@ -26,11 +28,12 @@ class InputManager {
     const state = e.type == "keydown";
 
     for (const key in this.inputs) {
-      if (InputsKeys[key].includes(e.key)) {
-        this.inputs[key] = state;
+      if (InputsKeys[key as Inputs].includes(e.key)) {
+        this.inputs[key as Inputs] = state;
       }
     }
   }
 }
 
 export { InputManager };
+export type { Inputs };

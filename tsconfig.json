@@ -1,13 +1,22 @@
 {
   "compilerOptions": {
+    // custom
+    "outDir": "dist",
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "sourceMap": true,
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
-    "outDir": "dist"
+    // colyseus template
+    "declaration": true,
+    "removeComments": true,
+    "noImplicitAny": false,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "allowJs": true,
+    "strictNullChecks": false,
+    "forceConsistentCasingInFileNames": true
   },
   "exclude": ["app-client/*", "node-modules", "dist", "test"]
 }

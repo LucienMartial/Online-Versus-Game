@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@pixi/assets": "^6.5.8",
+    "colyseus.js": "^0.14.13",
     "pixi-viewport": "^4.38.0",
     "pixi.js": "^6.5.8",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "socket.io-client": "^4.5.4"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.26",

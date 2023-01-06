@@ -3,9 +3,17 @@ import React from "react";
 import { Application } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import "./Game.css";
-import { Scene } from "../game/scene";
+import { GameScene } from "../game/game";
+import { Client, Room } from "colyseus.js";
+import { GameState } from "../../../app-shared/state/game-state";
+import { WORLD_WIDTH, WORLD_HEIGHT } from "../../../app-shared/utils/constants";
 
-function Game() {
+export interface GameProps {
+  client: Client;
+  gameRoom: Room<GameState>;
+}
+
+function Game({ client, gameRoom }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guiRef = useRef<HTMLDivElement>(null);
 
@@ -18,22 +26,20 @@ function Game() {
     });
 
     // set viewport
-    const width = 1600;
-    const height = 900;
     const viewport = new Viewport({
-      worldWidth: width,
-      worldHeight: height,
+      worldWidth: WORLD_WIDTH,
+      worldHeight: WORLD_HEIGHT,
       passiveWheel: false,
     });
 
     app.stage.addChild(viewport);
-    viewport.moveCenter(width / 2, height / 2);
+    viewport.moveCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
     viewport.fit();
 
     // init scene
-    const scene = new Scene(width, height);
-    scene.load().then(() => {
-      viewport.addChild(scene.ctx.stage);
+    const gameScene = new GameScene(client, gameRoom);
+    gameScene.load().then(() => {
+      viewport.addChild(gameScene.stage);
       // launch game
       window.requestAnimationFrame(schedule);
     });
@@ -44,7 +50,8 @@ function Game() {
       const now = Date.now();
       const dt = (now - last) * 0.001;
       last = now;
-      scene.update(now, dt);
+      gameScene.update(dt);
+      gameScene.updateRenderables(dt);
       window.requestAnimationFrame(schedule);
     }
 
@@ -53,7 +60,7 @@ function Game() {
       app.renderer.resize(window.innerWidth, window.innerHeight);
       viewport.resize(window.innerWidth, window.innerHeight);
       viewport.fit();
-      viewport.moveCenter(width / 2, height / 2);
+      viewport.moveCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
     };
     resize();
     window.addEventListener("resize", resize);

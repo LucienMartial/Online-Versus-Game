@@ -1,28 +1,17 @@
-import { Response } from "sat";
-import { Entity } from "./entity";
+import SAT from "sat";
+import { BodyEntity } from "../game/index.js";
 
 // Engine parameters
 const PHYSIC_RATE = 1 / 60;
 
 /**
- * Temporary game state
- */
-class World {
-  entities: Set<Entity>;
-
-  constructor() {
-    this.entities = new Set<Entity>();
-  }
-}
-
-/**
  * Arcade physic engine
  */
 class PhysicEngine {
-  world: World;
+  private _world: Set<BodyEntity>;
 
   constructor() {
-    this.world = new World();
+    this._world = new Set<BodyEntity>();
   }
 
   /**
@@ -43,20 +32,25 @@ class PhysicEngine {
    * @param dt
    */
   step(dt: number) {
-    const entities = this.world.entities;
+    const entities = this._world;
 
     // update position and velocity
     for (const entity of entities) {
       if (entity.static) continue;
       // apply friction
       entity.velocity.scale(entity.friction.x, entity.friction.y);
+      // magnitude
+      const magnitude = entity.velocity.len();
+      if (magnitude > entity.maxSpeed) {
+        entity.velocity.scale(entity.maxSpeed / magnitude);
+      }
       // move
       entity.position.add(entity.velocity.clone().scale(dt));
       entity.collisionShape.setPosition(entity.position);
     }
 
     // handle collisions
-    const response = new Response();
+    const response = new SAT.Response();
     for (const entity of entities) {
       if (entity.static) continue;
       for (const collidable of entities) {
@@ -76,6 +70,19 @@ class PhysicEngine {
         }
       }
     }
+  }
+
+  // getters, setters
+  add(entity: BodyEntity) {
+    this._world.add(entity);
+  }
+
+  remove(entity: BodyEntity) {
+    this._world.delete(entity);
+  }
+
+  get world(): Set<BodyEntity> {
+    return this._world;
   }
 }
 
