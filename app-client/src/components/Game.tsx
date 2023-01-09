@@ -50,8 +50,8 @@ function Game({ client, gameRoom }: GameProps) {
       const now = Date.now();
       const dt = (now - last) * 0.001;
       last = now;
-      gameScene.update(dt);
-      gameScene.updateRenderables(dt);
+      gameScene.update(dt, now);
+      gameScene.updateRenderables(dt, now);
       window.requestAnimationFrame(schedule);
     }
 

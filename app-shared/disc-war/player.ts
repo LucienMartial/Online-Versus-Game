@@ -7,18 +7,20 @@ import { Inputs } from "../utils/index.js";
 const WIDTH = 80;
 const HEIGHT = 160;
 
-// movement
-const FRICTION = 0.9;
-const ACCELERATION = 80;
+// movement. 0 friction mean full determinism
+const FRICTION = 0;
 const MAX_SPEED = 800;
 const DASH_SPEED = 2000;
-const DASH_DURATION = 300;
+const DASH_DURATION = 200;
+const DASH_COOLDOWN = 1000;
 
 class Player extends BodyEntity {
   direction: SAT.Vector;
   canDash: boolean;
-  dashDirection: SAT.Vector;
+  isDashing: boolean;
   dashStart: number;
+  dashBegin: number;
+  dashForce: SAT.Vector;
 
   constructor(id: string) {
     // default
@@ -30,15 +32,19 @@ class Player extends BodyEntity {
     this.direction = new SAT.Vector();
     this.maxSpeed = MAX_SPEED;
 
+    // dash
     this.canDash = true;
-    this.dashDirection = new SAT.Vector();
+    this.dashBegin = 0;
+    this.isDashing = false;
     this.dashStart = 0;
+    this.dashForce = new SAT.Vector();
   }
 
-  processInput(inputs: Record<Inputs, boolean>) {
-    this.direction = new SAT.Vector();
+  processInput(now: number, inputs: Record<Inputs, boolean>) {
+    if (now < this.dashBegin + DASH_DURATION) return;
 
     // get direction
+    this.direction = new SAT.Vector();
     if (inputs.left) this.direction.x = -1;
     else if (inputs.right) this.direction.x = 1;
     if (inputs.up) this.direction.y = -1;
@@ -49,26 +55,36 @@ class Player extends BodyEntity {
     this.direction.normalize();
 
     // move
-    const acc = this.direction.clone().scale(ACCELERATION);
-    this.accelerate(acc.x, acc.y);
+    const force = this.direction.clone().scale(MAX_SPEED);
+    this.setVelocity(force.x, force.y);
 
     // apply dash
     if (inputs.dash && this.canDash) {
-      this.maxSpeed = DASH_SPEED;
-      this.friction = new SAT.Vector(0.92, 0.92);
-      this.canDash = false;
-      const dashForce = this.direction.clone().scale(DASH_SPEED);
-      this.velocity.copy(dashForce);
+      this.dashBegin = now;
       this.dashStart = 0;
+      this.canDash = false;
+      this.isDashing = true;
+      this.maxSpeed = DASH_SPEED;
+      this.dashForce = this.direction.clone().scale(DASH_SPEED);
+      this.setVelocity(this.dashForce.x, this.dashForce.y);
     }
   }
 
-  update(dt: number): void {
+  update(dt: number, now: number): void {
+    super.update(dt, now);
     if (!this.canDash) {
       this.dashStart += dt * 1000;
+      // still dashing
+      if (this.dashStart < DASH_DURATION) {
+        this.setVelocity(this.dashForce.x, this.dashForce.y);
+      }
+      // end of dash
       if (this.dashStart > DASH_DURATION) {
-        this.friction = new SAT.Vector(FRICTION, FRICTION);
+        this.isDashing = false;
         this.maxSpeed = MAX_SPEED;
+      }
+      // cooldown
+      if (this.dashStart > DASH_COOLDOWN) {
         this.canDash = true;
       }
     }

@@ -1,20 +1,23 @@
 import { Dispatcher } from "@colyseus/command";
-import { Client, ClientState, Room } from "colyseus";
+import { Client, Room } from "colyseus";
 import { DiscWarEngine } from "../app-shared/disc-war/disc-war.js";
 import { GameState } from "../app-shared/state/index.js";
 import { OnJoinCommand, OnLeaveCommand } from "./commands/index.js";
 import { OnInputCommand } from "./commands/on-input.js";
 import { OnSyncCommand } from "./commands/on-sync.js";
+import { GAME_RATE } from "../app-shared/utils/index.js";
 
 class GameRoom extends Room<GameState> {
   dispatcher = new Dispatcher(this);
   gameEngine: DiscWarEngine;
+  accumulator: number;
 
   onCreate() {
     this.setState(new GameState());
     this.gameEngine = new DiscWarEngine();
     this.setSimulationInterval((dt: number) => this.update(dt), 1000 / 60);
     this.setPatchRate(30);
+    this.accumulator = 0;
 
     // register event
     this.onMessage("*", (client, type, message) => {
@@ -61,17 +64,29 @@ class GameRoom extends Room<GameState> {
 
   // simulation update, 60 hertz
   update(dt: number) {
-    // TODO: command to apply input, verify size of buffer etc..
-    for (const client of this.clients) {
-      const lastInput = client.userData.inputBuffer.pop();
-      if (!lastInput) continue;
-      this.gameEngine.processInput(lastInput, client.id);
+    // fixed update
+    let now = this.clock.currentTime;
+    this.accumulator += Math.max(dt / 1000, GAME_RATE);
+    while (this.accumulator >= GAME_RATE) {
+      this.step(GAME_RATE, now);
+      this.accumulator -= GAME_RATE;
+      now += GAME_RATE;
     }
 
-    this.gameEngine.update(dt * 0.001, this.clock.elapsedTime);
+    // send state
     this.dispatcher.dispatch(new OnSyncCommand(), {
       gameEngine: this.gameEngine,
     });
+  }
+
+  step(dt: number, now: number) {
+    // TODO: command to apply input, verify size of buffer etc..
+    for (const client of this.clients) {
+      const input = client.userData.inputBuffer.pop();
+      if (!input) continue;
+      this.gameEngine.processInput(input.time, input.inputs, client.id);
+    }
+    this.gameEngine.step(dt, now);
   }
 }
 

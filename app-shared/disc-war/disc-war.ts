@@ -39,14 +39,14 @@ class DiscWarEngine extends GameEngine {
     return this.getById<Player>("players", id);
   }
 
-  processInput(inputs: Record<Inputs, boolean>, id: string): void {
+  processInput(now: number, inputs: Record<Inputs, boolean>, id: string): void {
     const player = this.getById<Player>("players", id);
     if (!player) return;
-    player.processInput(inputs);
+    player.processInput(now, inputs);
   }
 
-  update(dt: number, elapsed: number): void {
-    super.update(dt, elapsed);
+  fixedUpdate(dt: number, now: number): void {
+    super.fixedUpdate(dt, now);
     // for (const box of this.get<BodyEntity>("boxes")) {
     //   box.rotate(2 * dt);
     //   box.move(Math.cos(elapsed) * 2, Math.cos(elapsed * 0.8));

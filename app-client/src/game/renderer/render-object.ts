@@ -6,15 +6,15 @@ import { DisplayObject, ObservablePoint } from "pixi.js";
 class RenderObject {
   displayObject: DisplayObject;
   id: string;
-  onUpdate?: { (dt: number): void };
+  onUpdate?: { (dt: number, now: number): void };
 
   constructor(displayObject: DisplayObject, id = "") {
     this.displayObject = displayObject;
     this.id = id;
   }
 
-  update(dt: number) {
-    this.onUpdate?.(dt);
+  update(dt: number, now: number) {
+    this.onUpdate?.(dt, now);
   }
 
   // getters, setters

@@ -1,5 +1,6 @@
 import { Player } from "../../../../app-shared/disc-war";
 import { BoxShape } from "../../../../app-shared/physics";
+import { lerp } from "../../../../app-shared/utils";
 import { Graphics } from "../utils/graphics";
 import { RenderObject } from "./render-object";
 
@@ -17,8 +18,10 @@ class PlayerRender extends RenderObject {
     this.player = player;
   }
 
-  update(dt: number) {
-    this.setPosition(this.player.position.x, this.player.position.y);
+  update(dt: number, now: number) {
+    const lerpPower = 0.3;
+    this.position.x = lerp(this.position.x, this.player.position.x, lerpPower);
+    this.position.y = lerp(this.position.y, this.player.position.y, lerpPower);
   }
 }
 

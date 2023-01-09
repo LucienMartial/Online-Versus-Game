@@ -29,8 +29,8 @@ class BodyEntity extends Entity {
     this.collisionShape = collisionShape;
   }
 
-  update(dt: number) {
-    super.update(dt);
+  update(dt: number, now: number) {
+    super.update(dt, now);
   }
 
   /**
@@ -53,6 +53,11 @@ class BodyEntity extends Entity {
   setOffset(x: number, y: number) {
     this.offset = new SAT.Vector(x, y);
     this.collisionShape.setOffset(this.offset);
+  }
+
+  setVelocity(x: number, y: number) {
+    this.velocity.x = x;
+    this.velocity.y = y;
   }
 
   move(x: number, y: number) {

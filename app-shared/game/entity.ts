@@ -10,7 +10,7 @@ class Entity {
     this._position = new SAT.Vector();
   }
 
-  update(dt: number) {}
+  update(dt: number, now: number) {}
 
   // position
   setPosition(x: number, y: number) {

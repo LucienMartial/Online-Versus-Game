@@ -6,13 +6,11 @@ import { InputManager } from "./utils/input";
  * Abstract scene
  */
 abstract class Scene {
-  elapsed = 0;
   renderables: Set<RenderObject>;
   stage: Container<DisplayObject>;
   inputManager: InputManager;
 
   constructor() {
-    this.elapsed = 0;
     this.stage = new Container();
     this.stage.sortableChildren = true;
     this.inputManager = new InputManager();
@@ -27,19 +25,17 @@ abstract class Scene {
   // load asset and create game objects
   abstract load(): Promise<void>;
 
-  update(dt: number): void {
-    this.elapsed += dt;
-  }
+  update(dt: number, now: number): void {}
 
-  updateRenderables(dt: number) {
+  updateRenderables(dt: number, now: number) {
     for (const object of this.renderables.values()) {
-      object.update(dt);
+      object.update(dt, now);
     }
   }
 
   // useful functions
   add(object: RenderObject) {
-    object.update(0);
+    object.update(0, 0);
     this.renderables.add(object);
     this.stage.addChild(object.displayObject);
   }

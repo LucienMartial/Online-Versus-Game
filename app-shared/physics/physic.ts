@@ -37,8 +37,6 @@ class PhysicEngine {
     // update position and velocity
     for (const entity of entities) {
       if (entity.static) continue;
-      // apply friction
-      entity.velocity.scale(entity.friction.x, entity.friction.y);
       // magnitude
       const magnitude = entity.velocity.len();
       if (magnitude > entity.maxSpeed) {
@@ -47,6 +45,8 @@ class PhysicEngine {
       // move
       entity.position.add(entity.velocity.clone().scale(dt));
       entity.collisionShape.setPosition(entity.position);
+      // apply friction
+      entity.velocity.scale(entity.friction.x, entity.friction.y);
     }
 
     // handle collisions

@@ -1,6 +1,7 @@
 import { PhysicEngine } from "../physics/index.js";
 import { Inputs } from "../utils/index.js";
 import { Entity, BodyEntity, CollectionManager } from "./index.js";
+import { GAME_RATE } from "../utils/index.js";
 
 /**
  * Contain the game logic, used on server and client
@@ -8,26 +9,41 @@ import { Entity, BodyEntity, CollectionManager } from "./index.js";
 class GameEngine {
   private collections: CollectionManager;
   physicEngine: PhysicEngine;
+  accumulator: number;
 
   constructor() {
     this.physicEngine = new PhysicEngine();
     this.collections = new CollectionManager();
+    this.accumulator = 0;
     this.init();
   }
 
   init() {}
 
-  processInput(inputs: Record<Inputs, boolean>, id: string) {}
+  processInput(now: number, inputs: Record<Inputs, boolean>, id: string) {}
 
-  processInputBuffer(inputs: Record<Inputs, boolean>[], id: string) {
+  processInputBuffer(
+    now: number,
+    inputs: Record<Inputs, boolean>[],
+    id: string
+  ) {
     for (const input of inputs) {
-      this.processInput(input, id);
+      this.processInput(now, input, id);
     }
   }
 
-  update(dt: number, elapsed: number) {
-    this.physicEngine.fixedUpdate(dt);
-    this.collections.update(dt);
+  fixedUpdate(dt: number, now: number) {
+    this.accumulator += Math.max(dt, GAME_RATE);
+    while (this.accumulator >= GAME_RATE) {
+      this.step(GAME_RATE, now);
+      this.accumulator -= GAME_RATE;
+      now += GAME_RATE;
+    }
+  }
+
+  step(dt: number, now: number) {
+    this.collections.update(dt, now);
+    this.physicEngine.step(dt);
   }
 
   /**

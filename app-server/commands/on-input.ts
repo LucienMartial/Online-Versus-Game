@@ -7,10 +7,8 @@ import { GameRoom } from "../game-room.js";
 interface Data {
   client: Client;
   gameEngine: DiscWarEngine;
-  data: Record<Inputs, boolean>;
+  data: { time: number; inputs: Record<Inputs, boolean> };
 }
-
-let left = 0;
 
 class OnInputCommand extends Command<GameRoom, Data> {
   execute({ client, gameEngine, data } = this.payload) {
