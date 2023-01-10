@@ -39,7 +39,7 @@ class DiscState extends Schema {
 }
 
 class GameState extends Schema {
-  @type(DiscState) disc: DiscState;
+  @type(DiscState) disc = new DiscState(0, 0, 0, 0);
   @type({ map: PlayerState }) players = new MapSchema<PlayerState>();
   @type({ map: "number" }) lastInputs = new MapSchema<number>();
 }

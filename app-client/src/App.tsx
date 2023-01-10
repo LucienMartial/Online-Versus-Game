@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import { hello } from "../../app-shared/hello";
-import { Message } from "../../app-shared/api-types";
+import { Message } from "../../app-shared/types";
 import Game, { GameProps } from "./components/Game";
 import { Assets } from "@pixi/assets";
 import { Client, Room } from "colyseus.js";

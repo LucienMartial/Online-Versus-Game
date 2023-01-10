@@ -19,7 +19,6 @@ class Player extends BodyEntity {
   canDash: boolean;
   isDashing: boolean;
   dashStart: number;
-  dashBegin: number;
   dashForce: SAT.Vector;
 
   constructor(id: string) {
