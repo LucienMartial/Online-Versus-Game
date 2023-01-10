@@ -1,29 +1,31 @@
 import { Dispatcher } from "@colyseus/command";
 import { Client, Room } from "colyseus";
 import { DiscWarEngine } from "../app-shared/disc-war/disc-war.js";
-import { GameState } from "../app-shared/state/index.js";
+import { DiscState, GameState } from "../app-shared/state/index.js";
 import { OnJoinCommand, OnLeaveCommand } from "./commands/index.js";
+import { InputData } from "../app-shared/types/index.js";
 import { OnInputCommand } from "./commands/on-input.js";
 import { OnSyncCommand } from "./commands/on-sync.js";
-import { GAME_RATE } from "../app-shared/utils/index.js";
+import { BodyEntity } from "../app-shared/game/body-entity.js";
+
+interface UserData {
+  inputBuffer: InputData[];
+}
 
 class GameRoom extends Room<GameState> {
   dispatcher = new Dispatcher(this);
   gameEngine: DiscWarEngine;
-  accumulator: number;
 
   onCreate() {
     this.setState(new GameState());
     this.gameEngine = new DiscWarEngine();
     this.setSimulationInterval((dt: number) => this.update(dt), 1000 / 60);
     this.setPatchRate(30);
-    this.accumulator = 0;
 
     // register event
     this.onMessage("*", (client, type, message) => {
       const baseData = {
         client: client,
-        gameEngine: this.gameEngine,
         data: message,
       };
 
@@ -64,29 +66,29 @@ class GameRoom extends Room<GameState> {
 
   // simulation update, 60 hertz
   update(dt: number) {
-    // fixed update
-    let now = this.clock.currentTime;
-    this.accumulator += Math.max(dt / 1000, GAME_RATE);
-    while (this.accumulator >= GAME_RATE) {
-      this.step(GAME_RATE, now);
-      this.accumulator -= GAME_RATE;
-      now += GAME_RATE;
+    for (const client of this.clients) {
+      const data = client.userData as UserData;
+      const inputData = data.inputBuffer.shift();
+      if (!inputData) continue;
+      this.gameEngine.processInput(inputData.inputs, client.id);
+      this.state.lastInputs.set(client.id, inputData.time);
+    }
+
+    this.gameEngine.fixedUpdate(dt * 0.001, false);
+
+    for (const disc of this.gameEngine.get<BodyEntity>("disc")) {
+      this.state.disc = new DiscState(
+        disc.position.x,
+        disc.position.y,
+        disc.velocity.x,
+        disc.velocity.y
+      );
     }
 
     // send state
     this.dispatcher.dispatch(new OnSyncCommand(), {
       gameEngine: this.gameEngine,
     });
-  }
-
-  step(dt: number, now: number) {
-    // TODO: command to apply input, verify size of buffer etc..
-    for (const client of this.clients) {
-      const input = client.userData.inputBuffer.pop();
-      if (!input) continue;
-      this.gameEngine.processInput(input.time, input.inputs, client.id);
-    }
-    this.gameEngine.step(dt, now);
   }
 }
 

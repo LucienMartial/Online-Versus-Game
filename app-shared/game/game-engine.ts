@@ -20,29 +20,18 @@ class GameEngine {
 
   init() {}
 
-  processInput(now: number, inputs: Record<Inputs, boolean>, id: string) {}
+  processInput(inputs: Record<Inputs, boolean>, id: string) {}
 
-  processInputBuffer(
-    now: number,
-    inputs: Record<Inputs, boolean>[],
-    id: string
-  ) {
-    for (const input of inputs) {
-      this.processInput(now, input, id);
-    }
-  }
-
-  fixedUpdate(dt: number, now: number) {
+  fixedUpdate(dt: number, reenact: boolean) {
     this.accumulator += Math.max(dt, GAME_RATE);
     while (this.accumulator >= GAME_RATE) {
-      this.step(GAME_RATE, now);
+      this.step(GAME_RATE, reenact);
       this.accumulator -= GAME_RATE;
-      now += GAME_RATE;
     }
   }
 
-  step(dt: number, now: number) {
-    this.collections.update(dt, now);
+  step(dt: number, reenact: boolean) {
+    this.collections.update(dt, reenact);
     this.physicEngine.step(dt);
   }
 
@@ -59,6 +48,10 @@ class GameEngine {
 
   get<T extends Entity>(collectionName = "default"): Set<T> {
     return this.collections.get<T>(collectionName);
+  }
+
+  getOne<T extends Entity>(collectionName = "default"): T {
+    return this.collections.get<T>(collectionName).values().next().value as T;
   }
 
   getById<T extends Entity>(

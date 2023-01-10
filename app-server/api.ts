@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Message } from "../app-shared/api-types.js";
+import { Message } from "../app-shared/types/api.js";
 
 const router = Router();
 

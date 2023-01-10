@@ -1,4 +1,5 @@
 import { DisplayObject, ObservablePoint } from "pixi.js";
+import { lerp } from "../../../../app-shared/utils";
 
 /**
  * Renderable object
@@ -33,6 +34,11 @@ class RenderObject {
   move(x: number, y: number) {
     this.displayObject.position.x += x;
     this.displayObject.position.y += y;
+  }
+
+  lerpTo(x: number, y: number, t: number) {
+    this.position.x = lerp(this.position.x, x, t);
+    this.position.y = lerp(this.position.y, y, t);
   }
 
   rotate(angle: number) {

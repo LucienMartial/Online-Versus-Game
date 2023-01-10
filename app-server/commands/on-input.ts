@@ -1,17 +1,15 @@
 import { Command } from "@colyseus/command";
 import { Client } from "colyseus";
-import { DiscWarEngine } from "../../app-shared/disc-war/index.js";
-import { Inputs } from "../../app-shared/utils/inputs-types.js";
+import { InputData } from "../../app-shared/types/inputs.js";
 import { GameRoom } from "../game-room.js";
 
 interface Data {
   client: Client;
-  gameEngine: DiscWarEngine;
-  data: { time: number; inputs: Record<Inputs, boolean> };
+  data: InputData;
 }
 
 class OnInputCommand extends Command<GameRoom, Data> {
-  execute({ client, gameEngine, data } = this.payload) {
+  execute({ client, data } = this.payload) {
     client.userData.inputBuffer.push(data);
   }
 }

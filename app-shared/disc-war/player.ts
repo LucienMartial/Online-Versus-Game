@@ -34,14 +34,17 @@ class Player extends BodyEntity {
 
     // dash
     this.canDash = true;
-    this.dashBegin = 0;
     this.isDashing = false;
     this.dashStart = 0;
     this.dashForce = new SAT.Vector();
   }
 
-  processInput(now: number, inputs: Record<Inputs, boolean>) {
-    if (now < this.dashBegin + DASH_DURATION) return;
+  processInput(inputs: Record<Inputs, boolean>) {
+    // dashing
+    if (this.isDashing) {
+      this.setVelocity(this.dashForce.x, this.dashForce.y);
+      return;
+    }
 
     // get direction
     this.direction = new SAT.Vector();
@@ -60,31 +63,28 @@ class Player extends BodyEntity {
 
     // apply dash
     if (inputs.dash && this.canDash) {
-      this.dashBegin = now;
       this.dashStart = 0;
       this.canDash = false;
       this.isDashing = true;
       this.maxSpeed = DASH_SPEED;
       this.dashForce = this.direction.clone().scale(DASH_SPEED);
-      this.setVelocity(this.dashForce.x, this.dashForce.y);
     }
   }
 
-  update(dt: number, now: number): void {
-    super.update(dt, now);
+  update(dt: number, reenact: boolean): void {
+    super.update(dt, reenact);
+
     if (!this.canDash) {
       this.dashStart += dt * 1000;
-      // still dashing
-      if (this.dashStart < DASH_DURATION) {
-        this.setVelocity(this.dashForce.x, this.dashForce.y);
-      }
+
       // end of dash
-      if (this.dashStart > DASH_DURATION) {
+      if (this.dashStart >= DASH_DURATION) {
         this.isDashing = false;
         this.maxSpeed = MAX_SPEED;
       }
+
       // cooldown
-      if (this.dashStart > DASH_COOLDOWN) {
+      if (this.dashStart >= DASH_COOLDOWN) {
         this.canDash = true;
       }
     }

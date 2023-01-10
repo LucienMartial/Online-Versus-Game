@@ -19,7 +19,7 @@ class PlayerRender extends RenderObject {
   }
 
   update(dt: number, now: number) {
-    const lerpPower = 0.3;
+    const lerpPower = 1;
     this.position.x = lerp(this.position.x, this.player.position.x, lerpPower);
     this.position.y = lerp(this.position.y, this.player.position.y, lerpPower);
   }
