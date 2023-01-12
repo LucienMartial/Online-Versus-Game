@@ -76,17 +76,19 @@ class CollectionManager {
    * run update on all entities
    * @param dt
    */
-  update(dt: number, reenact: boolean) {
+  update(dt: number) {
     for (const [name, collection] of Object.entries(this.collections)) {
       // update collection child's entities
       for (const childName of this.getChilds(name)) {
         for (const entity of this.collections[childName].values()) {
-          entity.update(dt, reenact);
+          if (entity.isDead) continue;
+          entity.update(dt);
         }
       }
       // update own entity
       for (const entity of collection.values()) {
-        entity.update(dt, reenact);
+        if (entity.isDead) continue;
+        entity.update(dt);
       }
     }
   }

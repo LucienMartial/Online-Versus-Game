@@ -2,27 +2,33 @@ import { Vector } from "sat";
 import { DiscWarEngine } from "../../../../app-shared/disc-war";
 import { BodyEntity } from "../../../../app-shared/game";
 import { GameState } from "../../../../app-shared/state/game-state";
-import { InputData, lerp } from "../../../../app-shared/utils";
+import { CBuffer, InputData, lerp } from "../../../../app-shared/utils";
 
-const MAX_RESIMU_STEP = 80;
+const MAX_RESIMU_STEP = 75;
+const MAX_NB_INPUTS = 1000;
+const PLAYER_BEND = 0.15;
+const DISC_BEND = 0.15;
+const OTHER_PLAYERS_BEND = 0.3;
 
+/**
+ * Shadow object, contain information used for bending
+ * at the end of reconciliation to synchronize to server data
+ */
 class Shadow {
   oPosition: Vector;
   oVelocity: Vector;
-  position: Vector;
-  velocity: Vector;
-  bendPosition: Vector;
-  bendVelocity: Vector;
 
+  /**
+   * Register position before extrapolation, used for bending afterward
+   */
   constructor(position: Vector, velocity: Vector) {
     this.oPosition = new Vector().copy(position);
     this.oVelocity = new Vector().copy(velocity);
-    this.position = new Vector();
-    this.velocity = new Vector();
-    this.bendPosition = new Vector();
-    this.bendVelocity = new Vector();
   }
 
+  /**
+   * Interpolate between client predicted and server authorative data
+   */
   bend(position: Vector, velocity: Vector, factor = 0.1) {
     position.x = lerp(this.oPosition.x, position.x, factor);
     position.y = lerp(this.oPosition.y, position.y, factor);
@@ -31,43 +37,47 @@ class Shadow {
   }
 }
 
-interface Interpolation {
-  time: number;
-  position: Vector;
-}
-
-// predict next game state, handle synchronization with server
-// for the moment, only handle player
+/**
+ * Predict next game state, handle synchronization with the server
+ */
 class Predictor {
   gameEngine: DiscWarEngine;
   playerId: string;
-  inputs: InputData[];
+  inputs: CBuffer<InputData>;
 
   constructor(gameEngine: DiscWarEngine, playerId: string) {
     this.gameEngine = gameEngine;
     this.playerId = playerId;
-    this.inputs = [];
+    this.inputs = new CBuffer<InputData>(MAX_NB_INPUTS);
   }
 
+  /**
+   * register inputs for future reconciliation, process it afterward
+   */
   processInput(inputData: InputData) {
     this.inputs.push(structuredClone(inputData));
     this.gameEngine.processInput(inputData.inputs, this.playerId);
   }
 
+  /**
+   * Directly update the game after player input, regardless of server response
+   */
   predict(dt: number) {
-    if (this.inputs.length > MAX_RESIMU_STEP) return;
-    this.gameEngine.fixedUpdate(dt, false);
+    if (this.inputs.size() > MAX_RESIMU_STEP) return;
+    this.gameEngine.fixedUpdate(dt);
   }
 
-  synchronize(state: GameState) {
-    // synchronize players
-
+  /**
+   * Synchronize state with server, extrapolating using registered inputs
+   */
+  synchronize(state: GameState, now: number) {
+    // Synchronize players
     for (const [id, playerState] of state.players.entries()) {
       if (id === this.playerId) continue;
       const player = this.gameEngine.getPlayer(id);
       if (!player) continue;
       // interpolation new position
-      player.lerpTo(playerState.x, playerState.y, 0.3);
+      player.lerpTo(playerState.x, playerState.y, OTHER_PLAYERS_BEND);
     }
 
     // Extrapolation with bending at the end
@@ -77,59 +87,52 @@ class Predictor {
     const playerState = state.players.get(this.playerId);
     if (!player || !playerState) return;
 
-    if (playerState.isDashing) return;
-
     // save shadows
     const disc = this.gameEngine.getOne<BodyEntity>("disc");
     const discShadow = new Shadow(disc.position, disc.velocity);
     const playerShadow = new Shadow(player.position, player.velocity);
 
     // synchronize
+    this.gameEngine.sync(state);
     disc.setPosition(state.disc.x, state.disc.y);
     disc.setVelocity(state.disc.vx, state.disc.vy);
-    player.setPosition(playerState.x, playerState.y);
-    player.dashStart = playerState.dashStart;
-    player.isDashing = playerState.isDashing;
-    player.canDash = playerState.canDash;
+    player.synchronize(playerState);
 
     // re simulate (extrapolation)
     const lastInputTime = state.lastInputs.get(this.playerId);
     if (!lastInputTime) return;
-    this.reconciliate(lastInputTime, state);
+    this.reconciliate(lastInputTime);
+
+    // when ping is high, bend really fast to synchronized position
+    const delta = now - lastInputTime;
+    const multiplier = Math.max(1, delta * 0.005);
 
     // bending phase
-    discShadow.bend(disc.position, disc.velocity, 0.15);
-    playerShadow.bend(player.position, player.velocity, 0.05);
+    discShadow.bend(disc.position, disc.velocity, DISC_BEND * multiplier);
+    playerShadow.bend(player.position, player.velocity, PLAYER_BEND);
   }
 
-  // re apply input and re update from synchronization timestamp
-  reconciliate(start: number, state: GameState) {
-    const player = this.gameEngine.getPlayer(this.playerId);
-    if (!player) return;
-
+  /**
+   * Re apply input from a point of time, fully simulating multiple game steps
+   */
+  reconciliate(start: number) {
     let i = 0;
-    // console.log("reconciliate");
-    for (const data of this.inputs) {
-      if (data.time === start) {
-        this.inputs.splice(0, i);
-        if (this.inputs.length > MAX_RESIMU_STEP) {
-          this.inputs.splice(0, this.inputs.length - MAX_RESIMU_STEP);
+    for (const data of this.inputs.toArray()) {
+      if (data.time > start) {
+        this.inputs.remove(i);
+        if (this.inputs.size() > MAX_RESIMU_STEP) {
+          this.inputs.remove(this.inputs.size() - MAX_RESIMU_STEP);
           return;
         }
 
-        /**
-         * Interpolation
-         */
-
         // re apply input and re simulate the game
         let last = data.time;
-        for (const input of this.inputs) {
+        for (const input of this.inputs.toArray()) {
           const now = input.time;
           let dt = (now - last) * 0.001;
           last = input.time;
-
-          player.processInput(input.inputs);
-          this.gameEngine.step(dt, true);
+          this.gameEngine.processInput(input.inputs, this.playerId);
+          this.gameEngine.fixedUpdate(dt);
         }
 
         break;

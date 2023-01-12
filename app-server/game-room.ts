@@ -1,26 +1,36 @@
 import { Dispatcher } from "@colyseus/command";
 import { Client, Room } from "colyseus";
 import { DiscWarEngine } from "../app-shared/disc-war/disc-war.js";
-import { DiscState, GameState } from "../app-shared/state/index.js";
-import { OnJoinCommand, OnLeaveCommand } from "./commands/index.js";
+import { GameState } from "../app-shared/state/index.js";
+import {
+  OnJoinCommand,
+  OnLeaveCommand,
+  OnInputCommand,
+  OnSyncCommand,
+} from "./commands/index.js";
 import { InputData } from "../app-shared/types/index.js";
-import { OnInputCommand } from "./commands/on-input.js";
-import { OnSyncCommand } from "./commands/on-sync.js";
-import { BodyEntity } from "../app-shared/game/body-entity.js";
+import { CBuffer } from "../app-shared/utils/cbuffer.js";
 
+// maximum number of inputs saved for each client
+const MAX_INPUTS = 600;
 interface UserData {
-  inputBuffer: InputData[];
+  inputBuffer: CBuffer<InputData>;
 }
 
+/**
+ * Server room for the disc war game
+ */
 class GameRoom extends Room<GameState> {
   dispatcher = new Dispatcher(this);
   gameEngine: DiscWarEngine;
+  isLeft: boolean;
 
   onCreate() {
     this.setState(new GameState());
-    this.gameEngine = new DiscWarEngine();
+    this.gameEngine = new DiscWarEngine(true);
     this.setSimulationInterval((dt: number) => this.update(dt), 1000 / 60);
-    this.setPatchRate(30);
+    this.setPatchRate(20);
+    this.isLeft = true;
 
     // register event
     this.onMessage("*", (client, type, message) => {
@@ -48,6 +58,7 @@ class GameRoom extends Room<GameState> {
 
   onJoin(client: Client) {
     this.dispatcher.dispatch(new OnJoinCommand(), {
+      maxInputs: MAX_INPUTS,
       client: client,
       gameEngine: this.gameEngine,
     });
@@ -66,6 +77,8 @@ class GameRoom extends Room<GameState> {
 
   // simulation update, 60 hertz
   update(dt: number) {
+    // process inputs for each players
+    // TODO: verify input before applying it
     for (const client of this.clients) {
       const data = client.userData as UserData;
       const inputData = data.inputBuffer.shift();
@@ -74,18 +87,10 @@ class GameRoom extends Room<GameState> {
       this.state.lastInputs.set(client.id, inputData.time);
     }
 
-    this.gameEngine.fixedUpdate(dt * 0.001, false);
+    // Update the game simulation
+    this.gameEngine.fixedUpdate(dt * 0.001);
 
-    for (const disc of this.gameEngine.get<BodyEntity>("disc")) {
-      this.state.disc = new DiscState(
-        disc.position.x,
-        disc.position.y,
-        disc.velocity.x,
-        disc.velocity.y
-      );
-    }
-
-    // send state
+    // synchronize the sended state with the simulation one
     this.dispatcher.dispatch(new OnSyncCommand(), {
       gameEngine: this.gameEngine,
     });

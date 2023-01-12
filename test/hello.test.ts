@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import request from "supertest";
 import { app } from "../index";
 import { hello } from "../app-shared/hello";
-import { Message } from "../app-shared/api-types";
+import { Message } from "../app-shared/types";
 
 function sum(a: number, b: number) {
   return a + b;

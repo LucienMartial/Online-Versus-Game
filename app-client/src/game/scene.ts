@@ -17,16 +17,26 @@ abstract class Scene {
     this.renderables = new Set<RenderObject>();
   }
 
-  // clean up the scene
+  /**
+   * Clean up the scene
+   */
   destroy() {
     this.stage.destroy();
   }
 
-  // load asset and create game objects
+  /**
+   * Load assets and create game objects
+   */
   abstract load(): Promise<void>;
 
+  /**
+   * Update logic
+   */
   update(dt: number, now: number): void {}
 
+  /**
+   * Update renderable objects
+   */
   updateRenderables(dt: number, now: number) {
     for (const object of this.renderables.values()) {
       object.update(dt, now);
@@ -34,10 +44,11 @@ abstract class Scene {
   }
 
   // useful functions
+
   add(object: RenderObject) {
     object.update(0, 0);
     this.renderables.add(object);
-    this.stage.addChild(object.displayObject);
+    this.stage.addChild(object.container);
   }
 
   remove(object: RenderObject) {
@@ -48,7 +59,7 @@ abstract class Scene {
     for (const object of this.renderables.values()) {
       if (object.id === id) {
         this.renderables.delete(object);
-        this.stage.removeChild(object.displayObject);
+        this.stage.removeChild(object.container);
         return;
       }
     }

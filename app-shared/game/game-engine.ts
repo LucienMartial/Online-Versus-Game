@@ -15,23 +15,20 @@ class GameEngine {
     this.physicEngine = new PhysicEngine();
     this.collections = new CollectionManager();
     this.accumulator = 0;
-    this.init();
   }
-
-  init() {}
 
   processInput(inputs: Record<Inputs, boolean>, id: string) {}
 
-  fixedUpdate(dt: number, reenact: boolean) {
+  fixedUpdate(dt: number) {
     this.accumulator += Math.max(dt, GAME_RATE);
     while (this.accumulator >= GAME_RATE) {
-      this.step(GAME_RATE, reenact);
+      this.step(GAME_RATE);
       this.accumulator -= GAME_RATE;
     }
   }
 
-  step(dt: number, reenact: boolean) {
-    this.collections.update(dt, reenact);
+  step(dt: number) {
+    this.collections.update(dt);
     this.physicEngine.step(dt);
   }
 

@@ -3,22 +3,34 @@ import { GameRoom } from "../game-room.js";
 import { PlayerState } from "../../app-shared/state/index.js";
 import { Client } from "colyseus";
 import { DiscWarEngine } from "../../app-shared/disc-war/index.js";
+import { CBuffer } from "../../app-shared/utils/cbuffer.js";
+import { InputData } from "../../app-shared/types/inputs.js";
 
-class OnJoinCommand extends Command<
-  GameRoom,
-  { client: Client; gameEngine: DiscWarEngine }
-> {
-  execute({ client, gameEngine } = this.payload) {
+interface Data {
+  maxInputs: number;
+  client: Client;
+  gameEngine: DiscWarEngine;
+}
+
+class OnJoinCommand extends Command<GameRoom, Data> {
+  execute({ maxInputs, client, gameEngine } = this.payload) {
     console.log("client joined", client.id);
 
     client.userData = {
-      inputBuffer: [],
+      inputBuffer: new CBuffer<InputData>(maxInputs),
     };
 
-    const player = gameEngine.addPlayer(client.id);
+    const player = gameEngine.addPlayer(client.id, this.room.isLeft);
+    this.room.isLeft = !this.room.isLeft;
+
     this.state.players.set(
       client.id,
-      new PlayerState(player.position.x, player.position.y)
+      new PlayerState(
+        player.isLeft,
+        player.isDead,
+        player.position.x,
+        player.position.y
+      )
     );
   }
 }

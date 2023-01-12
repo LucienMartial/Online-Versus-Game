@@ -36,7 +36,7 @@ class PhysicEngine {
 
     // update position and velocity
     for (const entity of entities) {
-      if (entity.static) continue;
+      if (entity.static || entity.isDead) continue;
       // magnitude
       const magnitude = entity.velocity.len();
       if (magnitude > entity.maxSpeed) {
@@ -52,7 +52,7 @@ class PhysicEngine {
     // handle collisions
     const response = new SAT.Response();
     for (const entity of entities) {
-      if (entity.static) continue;
+      if (entity.static || entity.isDead) continue;
       for (const collidable of entities) {
         if (collidable === entity) continue;
 

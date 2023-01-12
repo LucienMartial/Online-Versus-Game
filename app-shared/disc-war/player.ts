@@ -1,7 +1,8 @@
-import SAT, { Vector } from "sat";
+import SAT from "sat";
 import { BodyEntity } from "../game/index.js";
 import { BoxShape } from "../physics/index.js";
-import { Inputs } from "../utils/index.js";
+import { PlayerState } from "../state/game-state.js";
+import { Inputs, Timer } from "../utils/index.js";
 
 // shape
 const WIDTH = 80;
@@ -10,40 +11,76 @@ const HEIGHT = 160;
 // movement. 0 friction mean full determinism
 const FRICTION = 0;
 const MAX_SPEED = 800;
-const DASH_SPEED = 2000;
-const DASH_DURATION = 200;
-const DASH_COOLDOWN = 1000;
+const DASH_SPEED = 2200;
+
+// 1 second = 60 ticks
+const DASH_DURATION = 0.2 * 60;
+const DASH_COOLDOWN = 0.8 * 60;
 
 class Player extends BodyEntity {
   direction: SAT.Vector;
   canDash: boolean;
   isDashing: boolean;
-  dashStart: number;
+  dashTimer: Timer;
   dashForce: SAT.Vector;
+  isDead: boolean;
+  deadCallback: Function;
+  isLeft: boolean;
+  private isPuppet: boolean;
 
-  constructor(id: string) {
+  constructor(id: string, isPuppet: boolean, deadCallback: Function) {
     // default
     const collisionShape = new BoxShape(WIDTH, HEIGHT);
     super(collisionShape, false, id);
+    this.setOffset(WIDTH / 2, HEIGHT / 2);
 
     // custom
+    this.isPuppet = isPuppet;
+    this.isLeft = false;
     this.friction = new SAT.Vector(FRICTION, FRICTION);
     this.direction = new SAT.Vector();
     this.maxSpeed = MAX_SPEED;
-
-    // dash
+    this.isDead = false;
+    this.deadCallback = deadCallback;
     this.canDash = true;
     this.isDashing = false;
-    this.dashStart = 0;
     this.dashForce = new SAT.Vector();
+
+    // timers
+    this.dashTimer = new Timer();
+    this.registerTimer();
+  }
+
+  registerTimer() {
+    // end of dash
+    this.dashTimer.add(DASH_DURATION, () => {
+      this.isDashing = false;
+      this.maxSpeed = MAX_SPEED;
+    });
+    // cooldown
+    this.dashTimer.add(DASH_COOLDOWN, () => {
+      this.canDash = true;
+    });
+  }
+
+  onCollision(response: SAT.Response, other: BodyEntity) {
+    if (this.isPuppet) return;
+    // dynamic bodies
+    if (!other.static) {
+      if (!this.isDead) this.deadCallback(this);
+      this.isDead = true;
+      return;
+    }
+    // static bodies
+    this.move(-response.overlapV.x, -response.overlapV.y);
+    super.onCollision(response, other);
   }
 
   processInput(inputs: Record<Inputs, boolean>) {
-    // dashing
-    if (this.isDashing) {
-      this.setVelocity(this.dashForce.x, this.dashForce.y);
-      return;
-    }
+    if (this.isPuppet) return;
+
+    // if dashing, do not move
+    if (this.isDashing) return;
 
     // get direction
     this.direction = new SAT.Vector();
@@ -62,7 +99,7 @@ class Player extends BodyEntity {
 
     // apply dash
     if (inputs.dash && this.canDash) {
-      this.dashStart = 0;
+      this.dashTimer.reset();
       this.canDash = false;
       this.isDashing = true;
       this.maxSpeed = DASH_SPEED;
@@ -70,21 +107,24 @@ class Player extends BodyEntity {
     }
   }
 
-  update(dt: number, reenact: boolean): void {
-    super.update(dt, reenact);
+  synchronize(state: PlayerState) {
+    this.setPosition(state.x, state.y);
+    this.canDash = state.canDash;
+    this.isDashing = state.isDashing;
+    this.dashTimer.sync(state.dashTimer);
+    if (state.isDashing) this.maxSpeed = DASH_SPEED;
+  }
 
+  update(dt: number): void {
+    if (this.isPuppet) return;
+    super.update(dt);
+
+    // dash
     if (!this.canDash) {
-      this.dashStart += dt * 1000;
-
-      // end of dash
-      if (this.dashStart >= DASH_DURATION) {
-        this.isDashing = false;
-        this.maxSpeed = MAX_SPEED;
-      }
-
-      // cooldown
-      if (this.dashStart >= DASH_COOLDOWN) {
-        this.canDash = true;
+      this.dashTimer.update();
+      // dashing
+      if (this.isDashing) {
+        this.setVelocity(this.dashForce.x, this.dashForce.y);
       }
     }
   }

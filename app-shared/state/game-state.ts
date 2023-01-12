@@ -1,25 +1,31 @@
 import { Schema, MapSchema, type } from "@colyseus/schema";
 
 class PlayerState extends Schema {
+  @type("boolean") isLeft: boolean;
+  @type("boolean") isDead: boolean;
   @type("number") x: number;
   @type("number") y: number;
-  @type("number") dashStart: number;
-  @type("boolean") canDash: boolean;
+  @type("number") dashTimer: number;
   @type("boolean") isDashing: boolean;
+  @type("boolean") canDash: boolean;
 
   constructor(
+    isLeft: boolean,
+    isDead: boolean,
     x: number,
     y: number,
-    canDash = true,
+    dashTimer = 0,
     isDashing = false,
-    dashStart = 0
+    canDash = true
   ) {
     super();
+    this.isLeft = isLeft;
+    this.isDead = isDead;
     this.x = x;
     this.y = y;
-    this.canDash = canDash;
+    this.dashTimer = dashTimer;
     this.isDashing = isDashing;
-    this.dashStart = dashStart;
+    this.canDash = canDash;
   }
 }
 
@@ -38,7 +44,11 @@ class DiscState extends Schema {
   }
 }
 
+/**
+ * Game data on the server, shared with each clients
+ */
 class GameState extends Schema {
+  @type("number") respawnTimer = 0;
   @type(DiscState) disc = new DiscState(0, 0, 0, 0);
   @type({ map: PlayerState }) players = new MapSchema<PlayerState>();
   @type({ map: "number" }) lastInputs = new MapSchema<number>();

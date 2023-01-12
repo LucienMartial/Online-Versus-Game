@@ -29,8 +29,8 @@ class BodyEntity extends Entity {
     this.collisionShape = collisionShape;
   }
 
-  update(dt: number, reenact: boolean) {
-    super.update(dt, reenact);
+  update(dt: number) {
+    super.update(dt);
   }
 
   /**

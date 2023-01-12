@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import React from "react";
-import { Application } from "pixi.js";
+import { Application, Ticker } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import "./Game.css";
 import { GameScene } from "../game/game";
@@ -36,24 +36,26 @@ function Game({ client, gameRoom }: GameProps) {
     viewport.moveCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
     viewport.fit();
 
+    // run, smooth rendering over 10 frames
+    const ticker = new Ticker();
+    const smoothingFrames = 10;
+    let smoothedFrameDuration = 0;
+
+    ticker.add((dt) => {
+      smoothedFrameDuration =
+        (smoothedFrameDuration * (smoothingFrames - 1) + dt) / smoothingFrames;
+      const now = Date.now();
+      gameScene.update(smoothedFrameDuration * 0.001, now);
+      gameScene.updateRenderables(smoothedFrameDuration * 0.001, now);
+    });
+
     // init scene
     const gameScene = new GameScene(client, gameRoom);
     gameScene.load().then(() => {
       viewport.addChild(gameScene.stage);
       // launch game
-      window.requestAnimationFrame(schedule);
+      ticker.start();
     });
-
-    // scheduler
-    let last = Date.now();
-    function schedule() {
-      const now = Date.now();
-      const dt = (now - last) * 0.001;
-      last = now;
-      gameScene.update(dt, now);
-      gameScene.updateRenderables(dt, now);
-      window.requestAnimationFrame(schedule);
-    }
 
     // resize
     const resize = () => {
